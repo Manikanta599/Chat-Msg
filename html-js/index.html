@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="ticket.css">
+  <title>Ticket Raiser</title>
+</head>
+<body>
+  <button class="ticket-button" onclick="toggleTicketBox()">+</button>
+
+  <div id="ticket-box" class="ticket-box">
+    <div class="ticket-header">
+      <span>Raising Ticket as admin</span>
+      <button class="close-button" onclick="toggleTicketBox()">&#10005;</button>
+    </div>
+
+    <div class="ticket-content">
+      <div id="screenshot-container" class="screenshot-container"></div>
+
+      <form id="ticket-form" class="ticket-form">
+        <label for="priority">Priority</label>
+        <select id="priority" required>
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+          <option value="Urgent">Urgent</option>
+        </select>
+
+        <label for="description">Description</label>
+        <textarea id="description" placeholder="Describe your issue..." required></textarea>
+
+        <button type="submit" class="submit-button">Submit Ticket</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas"></script>
+  <script src="ticket.js"></script>
+</body>
+</html>

@@ -1,12 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import html2canvas from 'html2canvas';
+import axios from 'axios';
 import '../componts/ticket.css';
-import { Button, Tooltip, Select, Input, Form, message, Modal, MessageArgsProps } from 'antd';
+import { Button, Tooltip, Select, Input, Form, message, Modal } from 'antd';
 import { MessageOutlined } from '@ant-design/icons';
 import TextArea from 'antd/es/input/TextArea';
-import { io } from 'socket.io-client';
-// Initialize the socket connection to the server
-const socket = io('http://localhost:9001');
 
 // Define the interface for the ticket
 interface Ticket {
@@ -14,9 +12,17 @@ interface Ticket {
   description: string;
   priority: string;
   screenshot: string | null;
+  app_client_id: string;
 }
 
-const TicketRaiser: React.FC = () => {
+
+
+interface TicketRaiserProps {
+  appClientId: string; //  app_client_id
+  apiEndpoint: string; // API endpoint for ticket submission
+}
+
+const TicketRaiser: React.FC<TicketRaiserProps> = ({ appClientId, apiEndpoint }) => {
   const [username] = useState('admin');
   const [isOpen, setIsOpen] = useState(false);
   const [ticketDetails, setTicketDetails] = useState<Ticket>({
@@ -24,46 +30,20 @@ const TicketRaiser: React.FC = () => {
     description: '',
     priority: 'Low',
     screenshot: null,
+    app_client_id: appClientId,
   });
   const [isModalVisible, setIsModalVisible] = useState(false);
-
-  useEffect(() => {
-
-    socket.on('connect', () => {
-      console.log('Connected to server');
-    });
-
-    socket.on('disconnect', () => {
-      console.log('Disconnected from server');
-    });
-
-
-  // Listen for confirmation from the server when the ticket is received
-  socket.on('ticket_received', (data) => {
-    message.success(data.message);
-    console.log('Ticket ID:', data.ticketId); // Log the ticket ID for reference
-  });
-
-
-
-    return () => {
-      // Clean up the socket connection when the component is unmounted
-      socket.off('ticket_received');
-    };
-  }, []);
-
 
   // Toggle the ticket box
   const toggleTicketBox = async () => {
     if (!isOpen) {
       setIsOpen(true);
 
-      // Select the ticket-riser element and cast it to HTMLElement
       const ticketRiser = document.querySelector('.ticket-riser') as HTMLElement;
       const tooltipElement = document.querySelector('.ant-tooltip') as HTMLElement;
 
       if (ticketRiser) {
-        ticketRiser.style.display = 'none'; // Now TypeScript knows this is an HTMLElement
+        ticketRiser.style.display = 'none';
         tooltipElement.style.display = 'none';
       }
 
@@ -76,7 +56,6 @@ const TicketRaiser: React.FC = () => {
         screenshot: imgData,
       }));
 
-      // Restore the display of ticket-riser element
       if (ticketRiser) {
         ticketRiser.style.display = 'block';
         tooltipElement.style.display = '';
@@ -90,33 +69,54 @@ const TicketRaiser: React.FC = () => {
     }
   };
 
-
   // Handle form submission
-  const handleSubmit = (values: { description: string; priority: string }) => {
+  const handleSubmit = async (values: { description: string; priority: string }) => {
     if (values.description.trim()) {
       const updatedTicket = {
         ...ticketDetails,
         description: values.description,
         priority: values.priority,
+
+        //other fields from TicketCreationDTO sending as empty
+        ticketId: null,
+        serviceTicketId: null,
+        contact: '',
+        phoneNumber: '',
+        category: null,
+        assignedTo: null,
+        supportEngineer: null,
+        pcd: null,
+        cc: '',
       };
 
-      // Emit ticket details to the server
-      socket.emit('new_ticket', updatedTicket);
+      try {
+        // Make an Axios POST request to submit the ticket
+        const response = await axios.post(apiEndpoint, updatedTicket);
 
-      // Display success message using Ant Design's message component
-      message.success('Your ticket has been raised successfully!');
-      console.log('Ticket Raised:', updatedTicket);
+        // Handle the success response
+        if (response.status) {
+          message.success('Your ticket has been raised successfully!');
+          console.log('Sended data', updatedTicket);
+          console.log('Ticket Raised:', response.data);
 
-      // Reset fields after successful submission
-      setIsOpen(false);
-      setTicketDetails({
-        username: 'admin',
-        description: '',
-        priority: 'Low',
-        screenshot: null,
-      });
+          // Reset fields after successful submission
+          setIsOpen(false);
+          setTicketDetails({
+            username: 'admin',
+            description: '',
+            priority: 'Low',
+            screenshot: null,
+            app_client_id: appClientId,
+          });
+        } else {
+          message.error('Failed to raise the ticket. Please try again.');
+        }
+      } catch (error) {
+        // Handle error response
+        message.error('An error occurred while raising the ticket.');
+        console.error('Error:', error);
+      }
     } else {
-      // Display error message if description is missing
       message.error('Please provide a description for your ticket.');
     }
   };
@@ -129,20 +129,13 @@ const TicketRaiser: React.FC = () => {
     { value: 'Urgent', label: 'Urgent' },
   ];
 
-  // Show the modal with the screenshot
-  const showModal = () => {
-    setIsModalVisible(true);
-  };
-
-  // Handle closing the modal
-  const handleCancel = () => {
-    setIsModalVisible(false);
-  };
+  const showModal = () => setIsModalVisible(true);
+  const handleCancel = () => setIsModalVisible(false);
 
   return (
     <div className='ticket-riser'>
       {/* Floating button to open/close the ticket box */}
-      <Tooltip title="Raise Ticket" >
+      <Tooltip title="Raise Ticket">
         <Button
           type="primary"
           shape="circle"
@@ -158,7 +151,6 @@ const TicketRaiser: React.FC = () => {
         />
       </Tooltip>
 
-      {/* Ticket box */}
       {isOpen && (
         <div className={`ticket-box ${isOpen ? 'open' : ''}`}>
           <div className="ticket-header">
@@ -169,22 +161,24 @@ const TicketRaiser: React.FC = () => {
           </div>
 
           <div className="ticket-content">
-            {/* Display captured screenshot */}
             {ticketDetails.screenshot && (
               <div className="screenshot-container">
                 <img
                   src={ticketDetails.screenshot}
                   alt="Screenshot"
                   className="screenshot"
-                  onClick={showModal} // Open modal when clicked
-                  style={{ cursor: 'pointer', maxWidth: '200px' }} // Optional styling
+                  onClick={showModal}
+                  style={{ cursor: 'pointer', maxWidth: '200px' }}
                 />
               </div>
             )}
 
-            {/* Form for ticket submission */}
             <Form layout="vertical" onFinish={handleSubmit}>
-              <Form.Item label="Priority" name="priority" rules={[{ required: true, message: 'Please select a priority' }]}>
+              <Form.Item
+                label="Priority"
+                name="priority"
+                rules={[{ required: true, message: 'Please select a priority' }]}
+              >
                 <Select
                   value={ticketDetails.priority}
                   onChange={(value: string) => setTicketDetails({ ...ticketDetails, priority: value })}
@@ -196,11 +190,14 @@ const TicketRaiser: React.FC = () => {
               <Form.Item
                 label="Description"
                 name="description"
-                rules={[{ required: true, message: 'Please describe your issue' }]}>
+                rules={[{ required: true, message: 'Please describe your issue' }]}
+              >
                 <TextArea
                   rows={4}
                   value={ticketDetails.description}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setTicketDetails({ ...ticketDetails, description: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    setTicketDetails({ ...ticketDetails, description: e.target.value })
+                  }
                   placeholder="Describe your issue..."
                 />
               </Form.Item>
@@ -215,7 +212,6 @@ const TicketRaiser: React.FC = () => {
         </div>
       )}
 
-      {/* Modal to display the screenshot */}
       <Modal
         title="Screenshot"
         visible={isModalVisible}
@@ -224,7 +220,6 @@ const TicketRaiser: React.FC = () => {
         width={800}
         bodyStyle={{ maxHeight: '500px', overflow: 'auto' }}
       >
-
         <img
           src={ticketDetails.screenshot || ''}
           alt="Screenshot"

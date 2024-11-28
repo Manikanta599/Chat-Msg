@@ -7,7 +7,7 @@ import { SocketService } from './chat-app.service';
         origin: '*',  
         methods: ['GET', 'POST'],
         allowedHeaders: ['Content-Type', 'Authorization'],
-        credentials: true,  // Enable credentials (e.g., cookies)
+        credentials: true, 
     },
 })
 export class SocketGateway implements OnGatewayConnection {

@@ -52,7 +52,7 @@ export class SocketService {
       console.log(`Received new ticket from ${clientId}:`, ticketData);
 
       try {
-        const ticketId = new Date().toISOString(); // Use timestamp as a unique ID
+        const ticketId = new Date().toISOString(); //timestamp as a unique ID
         const newTicket = {
           ticketId,
           username: ticketData.username,
