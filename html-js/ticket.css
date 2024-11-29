@@ -26,7 +26,6 @@
 }
 
 .ticket-button:hover {
-    background-color: #0056b3;
     transform: scale(1.1);
 }
 
@@ -184,4 +183,22 @@ select {
     cursor: pointer;
     outline: none;
 }
-
+.ticket-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: transparent;
+    border: none;
+    padding: 0;
+    box-shadow: none;
+    cursor: pointer;
+  }
+  .ticket-icon {
+    width: 64px;
+    height: 54px;
+    background: transparent;
+  }

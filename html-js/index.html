@@ -7,12 +7,20 @@
   <title>Ticket Raiser</title>
 </head>
 <body>
-  <button class="ticket-button" onclick="toggleTicketBox()">+</button>
+  <button class="ticket-button" onclick="toggleTicketBox()">
+    <img
+      src="./helpx-logo.png"
+      alt="Ticket Icon"
+      class="ticket-icon"
+    />
+  </button>
 
   <div id="ticket-box" class="ticket-box">
     <div class="ticket-header">
       <span>Raising Ticket as admin</span>
       <button class="close-button" onclick="toggleTicketBox()">&#10005;</button>
+
+      
     </div>
 
     <div class="ticket-content">
